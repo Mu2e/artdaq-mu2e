@@ -39,6 +39,13 @@ cet_build_plugin(Mu2eSubEventReceiver artdaq::commandableGenerator
 
 cet_build_plugin(CRVReceiver artdaq::commandableGenerator LIBRARIES REG artdaq-mu2e::Mu2eReceiverBase)
 
+# Software-only generator for DAQ throughput tests - no DTC. Needs only the Mu2e type map.
+cet_build_plugin(Mu2eFragmentSimulator artdaq::commandableGenerator
+  LIBRARIES REG
+  artdaq-core-mu2e::Overlays
+  artdaq_plugin_types::CommandableFragmentGenerator
+)
+
 #get_cmake_property(_variableNames VARIABLES)
 #foreach (_variableName ${_variableNames})
 #    message(STATUS "${_variableName}=${${_variableName}}")
