@@ -1,0 +1,23 @@
+# FragmentAggregator: re-emit Fragment products under a single module label
+# to collapse the per-EventBuilder branch explosion in the DataLogger output.
+#
+# Usage: include this in the DataLogger's FHiCL, place fragmentAggregator
+# in a path before the output module, and use outputCommands to drop the
+# original per-EB branches and keep only the aggregator's.
+
+physics.producers.fragmentAggregator: {
+  module_type: FragmentAggregator
+  # instanceNames defaults to ["CFO", "DTCEVT"] - only names that carry data;
+  # ContainerDTCEVT was removed after measuring it at the empty-branch floor
+  # throwOnDuplicate defaults to true
+}
+
+# Add to a path before the output module:
+#   physics.my_path: [ fragmentAggregator, rootOutput ]
+#   physics.end_paths: [ my_path ]
+
+# outputCommands on the output module to collapse branches:
+#   outputs.rootOutput.outputCommands: [
+#     "drop *",
+#     "keep artdaq::Fragments_fragmentAggregator_*_*"
+#   ]
