@@ -24,6 +24,21 @@
 //              to force all detectors to produce the identical delay sequence
 //              (same delay for event N on every board).
 // -----------------------------------------------------------------------------
+// Software-triggered subrun rollover
+// -----------------------------------------------------------------------------
+// Emits an EndOfSubrun metadata fragment every N events, from a single
+// designated fragment ID. Off by default.
+//
+// FHiCL parameters (all optional, feature is off by default):
+//
+//   subrun_rollover_interval    (size_t, default 0)
+//       Number of events between subrun transitions. 0 disables the feature.
+//
+//   subrun_rollover_fragment_id (int, default -1)
+//       Only the generator instance whose fragment_id() equals this value
+//       performs the rollover and emits the EndOfSubrun fragment. -1 disables
+//       the feature regardless of subrun_rollover_interval.
+// -----------------------------------------------------------------------------
 
 #include "artdaq-core-mu2e/Overlays/FragmentType.hh"
 #include "artdaq-core-mu2e/Overlays/DTCEventFragment.hh"
@@ -111,6 +126,16 @@ private:
 	double const throttle_lognormal_sigma_;
 	std::mt19937_64 delay_rng_;
 	std::lognormal_distribution<double> delay_lognorm_dist_;
+
+	// --- Subrun rollover parameters ---
+	// subrun_rollover_interval_: number of events between software-triggered
+	//     subrun transitions. 0 disables the feature.
+	// subrun_rollover_fragment_id_: only the generator instance whose
+	//     fragment_id() matches this value performs the rollover and emits
+	//     the EndOfSubrun fragment. -1 (default) disables the feature.
+	std::size_t subrun_rollover_interval_;
+	int subrun_rollover_fragment_id_;
+	int subrun_number_{-1};
 	// The "getNext_" function is used to implement user-specific
 	// functionality; it's a mandatory override of the pure virtual
 	// getNext_ function declared in CommandableFragmentGenerator
@@ -197,6 +222,8 @@ mu2e::Mu2eSubEventReceiver::Mu2eSubEventReceiver(fhicl::ParameterSet const& ps)
 	, throttle_usecs_(ps.get<size_t>("throttle_usecs", 0))  // in units of us
 	, throttle_lognormal_usecs_(ps.get<double>("throttle_lognormal_usecs", 0.0))
 	, throttle_lognormal_sigma_(ps.get<double>("throttle_lognormal_sigma", 0.5))
+	, subrun_rollover_interval_(ps.get<std::size_t>("subrun_rollover_interval", 0))
+	, subrun_rollover_fragment_id_(ps.get<int>("subrun_rollover_fragment_id", -1))
 {
 	// --- Initialise emulated-delay RNG ---
 	if (throttle_lognormal_usecs_ > 0.0)
@@ -323,6 +350,8 @@ void mu2e::Mu2eSubEventReceiver::stop()
 void mu2e::Mu2eSubEventReceiver::start()
 {
 	theInterface_->ReleaseAllBuffers(DTC_DMA_Engine_DAQ);
+
+	subrun_number_ = subrun_number();
 
 	if (rawOutput_)
 	{
@@ -628,6 +657,27 @@ bool mu2e::Mu2eSubEventReceiver::getNextDTCEventFragment(artdaq::FragmentPtrs& f
 		metricMan->sendMetric("Average Event Size", evt->GetEventByteCount(), "Bytes", 3, artdaq::MetricMode::Average);
 		TLOG(TLVL_DEBUG + 26) << "Incrementing event counter";
 		ev_counter_inc();
+
+		//--------------------------------------------------------------------------------
+		// Sub-run transition: fire inline so the boundary is exact within the batch.
+		// Only the instance whose fragment_id() matches subrun_rollover_fragment_id_
+		// performs the rollover; -1 (default) disables the feature entirely.
+		//--------------------------------------------------------------------------------
+		const bool sw_subrun_trigger = (subrun_rollover_fragment_id_ >= 0) &&
+									   (static_cast<int>(fragment_id()) == subrun_rollover_fragment_id_) &&
+									   (subrun_rollover_interval_ > 0) &&
+									   (ev_counter() % subrun_rollover_interval_ == 0);
+		if (sw_subrun_trigger)
+		{
+			const auto next_subrun = subrun_number_ + 1;
+			TLOG(TLVL_DEBUG + 29) << "Subrun transition at EWT=" << fragment_timestamp
+								  << " ev_counter=" << ev_counter()
+								  << " -> subrun " << next_subrun;
+			subrun_number_ = next_subrun;
+			//                                                                   next EWT             subrun       ID
+			frags.emplace_back(artdaq::MetadataFragment::CreateEndOfSubrunFragment(
+				my_rank, fragment_timestamp + 1, next_subrun, fragment_id()));
+		}
 	}
 	auto after_copy = std::chrono::steady_clock::now();
 	for (auto& frag : frags) { frag->getLatency(true); }
