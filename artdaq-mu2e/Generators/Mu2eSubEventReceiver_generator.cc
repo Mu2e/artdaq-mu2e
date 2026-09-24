@@ -245,22 +245,7 @@ mu2e::Mu2eSubEventReceiver::Mu2eSubEventReceiver(fhicl::ParameterSet const& ps)
 														   cfoConfig.get<bool>("useCFODRP", false));
 	}
 
-	if (skip_dtc_init_)
-	{
-		try
-		{
-			theInterface_->ReleaseAllBuffers(DTC_DMA_Engine_DAQ);
-		}
-		catch (const std::exception& ex)
-		{
-			throw std::runtime_error(std::string("Mu2eSubEventReceiver: ReleaseAllBuffers failed during init (skip_dtc_init): ") + ex.what());
-		}
-		catch (...)
-		{
-			throw std::runtime_error("Mu2eSubEventReceiver: ReleaseAllBuffers failed during init (skip_dtc_init): unknown exception");
-		}
-		return;  // skip any control of DTC
-	}
+	if (skip_dtc_init_) return;  // skip any control of DTC (the DTC front end owns configure-time buffer release)
 
 	if (ps.get<bool>("load_sim_file", false))
 	{
