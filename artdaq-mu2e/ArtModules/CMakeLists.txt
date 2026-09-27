@@ -33,6 +33,14 @@ cet_build_plugin(DTCEVTPrint art::module LIBRARIES REG
     artdaq-core-mu2e::Data
 )
 
+cet_build_plugin(FragmentAggregator art::module LIBRARIES REG
+    artdaq-core::Data
+)
+
+cet_build_plugin(SyntheticFragmentProducer art::module LIBRARIES REG
+    artdaq-core::Data
+)
+
 # Subdirectories.
 add_subdirectory(fcl)
 

@@ -89,6 +89,7 @@ private:
 	std::ofstream rawOutputStream_;
 	bool print_packets_;
 	size_t heartbeats_after_{16};
+	bool fail_on_dtc_read_error_{true};
 
 	size_t dtc_offset_{0};
 	size_t n_dtcs_{1};
@@ -190,6 +191,7 @@ mu2e::Mu2eSubEventReceiver::Mu2eSubEventReceiver(fhicl::ParameterSet const& ps)
 	, rawOutputFile_(ps.get<std::string>("raw_output_file", "/tmp/Mu2eReceiver.bin"))
 	, print_packets_(ps.get<bool>("debug_print", false))
 	, heartbeats_after_(ps.get<size_t>("null_heartbeats_after_requests", 16))
+	, fail_on_dtc_read_error_(ps.get<bool>("fail_on_dtc_read_error", true))
 	, dtc_offset_(ps.get<size_t>("dtc_position_in_chain", 0))
 	, n_dtcs_(ps.get<size_t>("n_dtcs_in_chain", 1))
 	, throttle_usecs_(ps.get<size_t>("throttle_usecs", 0))  // in units of us
@@ -346,6 +348,10 @@ bool mu2e::Mu2eSubEventReceiver::getNextDTCFragment(artdaq::FragmentPtrs& frags,
 		catch (std::exception const& ex)
 		{
 			TLOG(TLVL_ERROR) << "There was an error in the DTC Library: " << ex.what();
+			if (fail_on_dtc_read_error_)
+			{
+				throw std::runtime_error(std::string("Mu2eSubEventReceiver fatal DTC read error: ") + ex.what());
+			}
 		}
 		retryCount--;
 	}
@@ -515,6 +521,10 @@ bool mu2e::Mu2eSubEventReceiver::getNextDTCEventFragment(artdaq::FragmentPtrs& f
 		catch (std::exception const& ex)
 		{
 			TLOG(TLVL_ERROR) << "There was an error in the DTC Library: " << ex.what();
+			if (fail_on_dtc_read_error_)
+			{
+				throw std::runtime_error(std::string("Mu2eSubEventReceiver fatal DTC read error: ") + ex.what());
+			}
 		}
 		retryCount--;
 	}
@@ -541,12 +551,12 @@ bool mu2e::Mu2eSubEventReceiver::getNextDTCEventFragment(artdaq::FragmentPtrs& f
 			metricMan->sendMetric("ROC link4 status", subevtheader->link4_status, "status", 3, artdaq::MetricMode::Maximum);
 			metricMan->sendMetric("ROC link5 status", subevtheader->link5_status, "status", 3, artdaq::MetricMode::Maximum);
 
-			metricMan->sendMetric("ROC link0 latency", subevtheader->link0_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
-			metricMan->sendMetric("ROC link1 latency", subevtheader->link1_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
-			metricMan->sendMetric("ROC link2 latency", subevtheader->link2_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
-			metricMan->sendMetric("ROC link3 latency", subevtheader->link3_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
-			metricMan->sendMetric("ROC link4 latency", subevtheader->link4_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
-			metricMan->sendMetric("ROC link5 latency", subevtheader->link5_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum);
+			metricMan->sendMetric("ROC link0 latency", subevtheader->link0_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
+			metricMan->sendMetric("ROC link1 latency", subevtheader->link1_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
+			metricMan->sendMetric("ROC link2 latency", subevtheader->link2_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
+			metricMan->sendMetric("ROC link3 latency", subevtheader->link3_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
+			metricMan->sendMetric("ROC link4 latency", subevtheader->link4_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
+			metricMan->sendMetric("ROC link5 latency", subevtheader->link5_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
 
 			for (size_t bl = 0; bl < subevt->GetDataBlockCount(); ++bl)
 			{
