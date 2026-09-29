@@ -116,6 +116,7 @@ private:
 
 	// DB output — background writer thread
 	std::string subrun_record_db_connstr_;
+	std::string db_schema_;
 
 	static constexpr size_t kDbQueueMaxSize = 20;
 	std::queue<SubrunRecord> db_queue_;
@@ -229,11 +230,11 @@ void mu2e::CFODataReceiver::writeRecordToDb_(PGconn* conn, const SubrunRecord& r
 
 	// Use parameterized query to avoid any injection issues
 	const std::string sql =
-		"INSERT INTO test_sc.subrun "
-		"(run, subrun, n_events, n_on_spill, n_off_spill, n_null, "
+		"INSERT INTO " + db_schema_ + ".subrun "
+		"(run_number, subrun_number, n_events, n_on_spill, n_off_spill, n_null, "
 		" min_ewt, max_ewt, start_time_unix, stop_time_unix, event_mode_counts) "
 		"VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb) "
-		"ON CONFLICT (run, subrun) DO UPDATE SET "
+		"ON CONFLICT (run_number, subrun_number) DO UPDATE SET "
 		"  n_events=EXCLUDED.n_events, n_on_spill=EXCLUDED.n_on_spill, "
 		"  n_off_spill=EXCLUDED.n_off_spill, n_null=EXCLUDED.n_null, "
 		"  min_ewt=EXCLUDED.min_ewt, max_ewt=EXCLUDED.max_ewt, "
@@ -430,6 +431,9 @@ mu2e::CFODataReceiver::CFODataReceiver(fhicl::ParameterSet const& ps)
 			TLOG(TLVL_DEBUG) << "Built DB connstr from environment: " << subrun_record_db_connstr_;
 		}
 	}
+
+	const char* schema_env = std::getenv("OTSDAQ_RUNINFO_DATABASE_SCHEMA");
+	db_schema_ = schema_env ? schema_env : "online";
 
 	// mode_ can still be overridden by environment!
 	theCFO_ = std::make_unique<CFOLib::CFO>(mode_,
