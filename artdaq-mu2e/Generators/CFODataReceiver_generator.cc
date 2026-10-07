@@ -230,7 +230,8 @@ void mu2e::CFODataReceiver::writeRecordToDb_(PGconn* conn, const SubrunRecord& r
 
 	// Use parameterized query to avoid any injection issues
 	const std::string sql =
-		"INSERT INTO " + db_schema_ + ".subrun "
+		"INSERT INTO " + db_schema_ +
+		".subrun "
 		"(run_number, subrun_number, n_events, n_on_spill, n_off_spill, n_null, "
 		" min_ewt, max_ewt, start_time_unix, stop_time_unix, event_mode_counts) "
 		"VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11::jsonb) "
