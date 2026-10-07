@@ -118,9 +118,9 @@ mu2e::Mu2eFragmentSimulator::Mu2eFragmentSimulator(fhicl::ParameterSet const& ps
 	}
 
 	TLOG(TLVL_INFO) << "Mu2eFragmentSimulator: type=" << typeName << " (" << static_cast<int>(fragmentType_)
-	                << ") payload_bytes=" << payloadBytes_ << " frags_per_event=" << fragmentsPerEvent_
-	                << " fill=" << fillMode << " pool_bytes=" << poolSpan_
-	                << " throttle_usecs=" << throttleUsecs_;
+					<< ") payload_bytes=" << payloadBytes_ << " frags_per_event=" << fragmentsPerEvent_
+					<< " fill=" << fillMode << " pool_bytes=" << poolSpan_
+					<< " throttle_usecs=" << throttleUsecs_;
 }
 
 bool mu2e::Mu2eFragmentSimulator::getNext_(artdaq::FragmentPtrs& frags)
