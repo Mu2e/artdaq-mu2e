@@ -416,7 +416,7 @@ mu2e::CFODataReceiver::CFODataReceiver(fhicl::ParameterSet const& ps)
 	: CommandableFragmentGenerator(ps)
 	, fragment_ids_{static_cast<artdaq::Fragment::fragment_id_t>(fragment_id())}
 	, mode_(DTCLib::DTC_SimModeConverter::ConvertToSimMode(ps.get<std::string>("sim_mode", "Disabled")))
-	, skip_cfo_init_(ps.get<bool>("skip_cfo_init", false))
+	, skip_cfo_init_(ps.get<bool>("skip_cfo_init", true))
 	, print_packets_(ps.get<bool>("debug_print", false))
 	, throttle_usecs_(ps.get<size_t>("throttle_usecs", 0))  // in units of us
 	, rollover_subrun_interval_(ps.get<size_t>("rollover_subrun_interval", 20000))
