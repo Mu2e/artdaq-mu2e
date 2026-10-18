@@ -76,6 +76,14 @@ private:
 	int diagLevel_;
 	std::map<uint64_t, int> ewts_;  // for checking if an event window tag has been found before
 
+	// --- getNext_ batching parameters ---
+	// max_fragments_per_getnext: getNext_ returns once this many fragments have
+	//     been collected. Keep small: the EventBuilder scans every open buffer
+	//     per incoming fragment, so large bursts make it slow.
+	// max_getnext_time_us: getNext_ returns after this much time regardless.
+	std::size_t const max_fragments_per_getnext_;
+	std::size_t const max_getnext_time_us_;
+
 	// Per-subrun record
 	struct SubrunRecord
 	{
@@ -387,8 +395,8 @@ bool mu2e::CFODataReceiver::getNext_(artdaq::FragmentPtrs& frags)
 	{
 		retVal = getNextDTCFragment(frags, zero);
 		TLOG(TLVL_DEBUG + 35) << "getNext_ req retry? " << retVal << " " << frags.size();
-	} while (1 && retVal && frags.size() < 900 &&
-			 artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) < 100000 /* 100 ms */);
+	} while (retVal && frags.size() < max_fragments_per_getnext_ &&
+			 artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) < max_getnext_time_us_);
 	TLOG(TLVL_DEBUG + 36) << "getNext_ req done" << retVal << " " << frags.size();
 
 	return retVal;
@@ -408,11 +416,13 @@ mu2e::CFODataReceiver::CFODataReceiver(fhicl::ParameterSet const& ps)
 	: CommandableFragmentGenerator(ps)
 	, fragment_ids_{static_cast<artdaq::Fragment::fragment_id_t>(fragment_id())}
 	, mode_(DTCLib::DTC_SimModeConverter::ConvertToSimMode(ps.get<std::string>("sim_mode", "Disabled")))
-	, skip_cfo_init_(ps.get<bool>("skip_cfo_init", false))
+	, skip_cfo_init_(ps.get<bool>("skip_cfo_init", true))
 	, print_packets_(ps.get<bool>("debug_print", false))
 	, throttle_usecs_(ps.get<size_t>("throttle_usecs", 0))  // in units of us
 	, rollover_subrun_interval_(ps.get<size_t>("rollover_subrun_interval", 20000))
 	, diagLevel_(ps.get<int>("diagLevel", 0))
+	, max_fragments_per_getnext_(ps.get<std::size_t>("max_fragments_per_getnext", 100))
+	, max_getnext_time_us_(ps.get<std::size_t>("max_getnext_time_us", 10000))  // 10 ms
 	, subrun_record_dir_(ps.get<std::string>("subrun_record_dir", ""))
 	, subrun_record_db_connstr_(ps.get<std::string>("subrun_record_db_connstr", ""))
 {

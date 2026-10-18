@@ -136,6 +136,14 @@ private:
 	std::size_t subrun_rollover_interval_;
 	int subrun_rollover_fragment_id_;
 	int subrun_number_{-1};
+
+	// --- getNext_ batching parameters ---
+	// max_fragments_per_getnext: getNext_ returns once this many fragments have
+	//     been collected. Keep small: the EventBuilder scans every open buffer
+	//     per incoming fragment, so large bursts make it slow.
+	// max_getnext_time_us: getNext_ returns after this much time regardless.
+	std::size_t const max_fragments_per_getnext_;
+	std::size_t const max_getnext_time_us_;
 	// The "getNext_" function is used to implement user-specific
 	// functionality; it's a mandatory override of the pure virtual
 	// getNext_ function declared in CommandableFragmentGenerator
@@ -190,8 +198,8 @@ bool mu2e::Mu2eSubEventReceiver::getNext_(artdaq::FragmentPtrs& frags)
 	{
 		retVal = getNextDTCEventFragment(frags, zero);  // getNextDTCFragment(frags, zero);
 		TLOG(TLVL_DEBUG + 35) << "getNext_ req retry? " << retVal << " " << frags.size();
-	} while (1 && retVal && frags.size() < 900 &&
-			 artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) < 100000 /* 100 ms */);
+	} while (retVal && frags.size() < max_fragments_per_getnext_ &&
+			 artdaq::TimeUtils::GetElapsedTimeMicroseconds(start_time) < max_getnext_time_us_);
 	TLOG(TLVL_DEBUG + 36) << "getNext_ req done" << retVal << " " << frags.size();
 
 	return retVal;
@@ -224,6 +232,8 @@ mu2e::Mu2eSubEventReceiver::Mu2eSubEventReceiver(fhicl::ParameterSet const& ps)
 	, throttle_lognormal_sigma_(ps.get<double>("throttle_lognormal_sigma", 0.5))
 	, subrun_rollover_interval_(ps.get<std::size_t>("subrun_rollover_interval", 0))
 	, subrun_rollover_fragment_id_(ps.get<int>("subrun_rollover_fragment_id", -1))
+	, max_fragments_per_getnext_(ps.get<std::size_t>("max_fragments_per_getnext", 100))
+	, max_getnext_time_us_(ps.get<std::size_t>("max_getnext_time_us", 10000))  // 10 ms
 {
 	// --- Initialise emulated-delay RNG ---
 	if (throttle_lognormal_usecs_ > 0.0)
