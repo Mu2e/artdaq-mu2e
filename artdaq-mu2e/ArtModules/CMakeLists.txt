@@ -28,6 +28,10 @@ artdaq::DAQdata
 art::Framework_Principal
 )
 
+cet_build_plugin(Mu2eRunInfoDbService art::service LIBRARIES REG
+  PostgreSQL::PostgreSQL
+)
+
 cet_build_plugin(DTCEVTPrint art::module LIBRARIES REG
     art_root_io::TFileService_service
     artdaq-core-mu2e::Data
