@@ -29,8 +29,6 @@ art::Framework_Principal
 )
 
 cet_build_plugin(Mu2eRunInfoDbService art::service LIBRARIES REG
-  artdaq_plugin_types::ArtdaqRunInfoService
-  artdaq::DAQdata
   PostgreSQL::PostgreSQL
 )
 
