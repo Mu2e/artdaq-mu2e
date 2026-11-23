@@ -522,6 +522,8 @@ bool mu2e::CFODataReceiver::getNextDTCFragment(artdaq::FragmentPtrs& frags, DTCL
 	// GetSubEventData can return multiple EWTs, and we can assume that there is ONE DTC_SubEvent per EWT!
 	// std::map<uint64_t, int> ewts; // for checking if an event window tag has been found before
 	// std::map<uint64_t, std::unique_ptr<artdaq::ContainerFragmentLoader>> ewts; // for collecting fragments with the same event window tag
+	// Counted per batch and sent once below: the MetricManager caps the points kept per metric between reports
+	uint64_t batch_on_spill = 0, batch_off_spill = 0, batch_null = 0;
 	for (auto& cfoevt : data)
 	{
 		const DTCLib::DTC_EventWindowTag ts_out = cfoevt->GetEventWindowTag();
@@ -565,6 +567,7 @@ bool mu2e::CFODataReceiver::getNextDTCFragment(artdaq::FragmentPtrs& frags, DTCL
 			if (rec.event_mode == 0)
 			{
 				++subrun_record_.n_null;
+				++batch_null;
 			}
 			else
 			{
@@ -574,9 +577,15 @@ bool mu2e::CFODataReceiver::getNextDTCFragment(artdaq::FragmentPtrs& frags, DTCL
 				if (fragment_timestamp > subrun_record_.max_ewt) subrun_record_.max_ewt = fragment_timestamp;
 
 				if (mode.isOnSpillFlagSet())
+				{
 					++subrun_record_.n_on_spill;
+					++batch_on_spill;
+				}
 				else
+				{
 					++subrun_record_.n_off_spill;
+					++batch_off_spill;
+				}
 
 				const uint32_t hw_time = static_cast<uint32_t>(rec.linux_timestamp);
 				if (subrun_record_.start_time_unix == 0) subrun_record_.start_time_unix = hw_time;
@@ -619,6 +628,9 @@ bool mu2e::CFODataReceiver::getNextDTCFragment(artdaq::FragmentPtrs& frags, DTCL
 	metricMan->sendMetric("CFO Read Time", artdaq::TimeUtils::GetElapsedTime(after_read, after_copy), "s", 3, artdaq::MetricMode::Average);
 	metricMan->sendMetric("Fragment Prep Time", artdaq::TimeUtils::GetElapsedTime(before_read, after_read), "s", 3, artdaq::MetricMode::Average);
 	metricMan->sendMetric("HW Timestamp Rate", hw_timestamp_rate, "timestamps/s", 1, artdaq::MetricMode::Average);
+	metricMan->sendMetric("CFO On-Spill Events", batch_on_spill, "events", 3, artdaq::MetricMode::Rate);
+	metricMan->sendMetric("CFO Off-Spill Events", batch_off_spill, "events", 3, artdaq::MetricMode::Rate);
+	metricMan->sendMetric("CFO Null Events", batch_null, "events", 3, artdaq::MetricMode::Rate);
 
 	TLOG(TLVL_DEBUG + 28) << "Returning true";
 
