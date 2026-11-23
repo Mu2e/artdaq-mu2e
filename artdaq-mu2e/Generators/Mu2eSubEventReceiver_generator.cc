@@ -447,6 +447,20 @@ bool mu2e::Mu2eSubEventReceiver::getNextDTCFragment(artdaq::FragmentPtrs& frags,
 			metricMan->sendMetric("ROC link4 status", subevtheader->link4_status, "status", 3, artdaq::MetricMode::Maximum);
 			metricMan->sendMetric("ROC link5 status", subevtheader->link5_status, "status", 3, artdaq::MetricMode::Maximum);
 
+			// Counts per reporting interval. Link status: bit 0 ROC timeout, bit 2 packet
+			// sequence number error, bit 3 packet CRC error, bit 6 fatal error, bit 7 error.
+			{
+				const uint8_t linkStatus[6] = {static_cast<uint8_t>(subevtheader->link0_status), static_cast<uint8_t>(subevtheader->link1_status),
+											   static_cast<uint8_t>(subevtheader->link2_status), static_cast<uint8_t>(subevtheader->link3_status),
+											   static_cast<uint8_t>(subevtheader->link4_status), static_cast<uint8_t>(subevtheader->link5_status)};
+				for (int l = 0; l < 6; ++l)
+				{
+					const std::string ln = "ROC link" + std::to_string(l);
+					metricMan->sendMetric(ln + " timeouts", static_cast<int>(linkStatus[l] & 0x01), "events", 3, artdaq::MetricMode::Accumulate);
+					metricMan->sendMetric(ln + " other errors", static_cast<int>((linkStatus[l] & 0x7e) != 0), "events", 3, artdaq::MetricMode::Accumulate);
+				}
+			}
+
 			metricMan->sendMetric("ROC link0 latency", subevtheader->link0_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
 			metricMan->sendMetric("ROC link1 latency", subevtheader->link1_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
 			metricMan->sendMetric("ROC link2 latency", subevtheader->link2_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
@@ -594,6 +608,20 @@ bool mu2e::Mu2eSubEventReceiver::getNextDTCEventFragment(artdaq::FragmentPtrs& f
 			metricMan->sendMetric("ROC link3 status", subevtheader->link3_status, "status", 3, artdaq::MetricMode::Maximum);
 			metricMan->sendMetric("ROC link4 status", subevtheader->link4_status, "status", 3, artdaq::MetricMode::Maximum);
 			metricMan->sendMetric("ROC link5 status", subevtheader->link5_status, "status", 3, artdaq::MetricMode::Maximum);
+
+			// Counts per reporting interval. Link status: bit 0 ROC timeout, bit 2 packet
+			// sequence number error, bit 3 packet CRC error, bit 6 fatal error, bit 7 error.
+			{
+				const uint8_t linkStatus[6] = {static_cast<uint8_t>(subevtheader->link0_status), static_cast<uint8_t>(subevtheader->link1_status),
+											   static_cast<uint8_t>(subevtheader->link2_status), static_cast<uint8_t>(subevtheader->link3_status),
+											   static_cast<uint8_t>(subevtheader->link4_status), static_cast<uint8_t>(subevtheader->link5_status)};
+				for (int l = 0; l < 6; ++l)
+				{
+					const std::string ln = "ROC link" + std::to_string(l);
+					metricMan->sendMetric(ln + " timeouts", static_cast<int>(linkStatus[l] & 0x01), "events", 3, artdaq::MetricMode::Accumulate);
+					metricMan->sendMetric(ln + " other errors", static_cast<int>((linkStatus[l] & 0x7e) != 0), "events", 3, artdaq::MetricMode::Accumulate);
+				}
+			}
 
 			metricMan->sendMetric("ROC link0 latency", subevtheader->link0_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
 			metricMan->sendMetric("ROC link1 latency", subevtheader->link1_drp_rx_latency, "status", 3, artdaq::MetricMode::Minimum | artdaq::MetricMode::Maximum | artdaq::MetricMode::Average);
