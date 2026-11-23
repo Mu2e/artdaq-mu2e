@@ -29,6 +29,7 @@ art::Framework_Principal
 )
 
 cet_build_plugin(Mu2eRunInfoDbService art::service LIBRARIES REG
+  messagefacility::MF_MessageLogger
   PostgreSQL::PostgreSQL
 )
 
